@@ -21,8 +21,8 @@ class CryptoNotifier(object):
     def __init__(self, btc_url='https://www.coindesk.com/price/bitcoin', eth_url='https://www.coindesk.com/price/ethereum'):
         self.btc_url = btc_url
         self.eth_url = eth_url
-        self.btc_price = 'Not requested.'
-        self.eth_price = 'Not requested.'
+        self.btc_price = '0'
+        self.eth_price = '0'
         self.btc_upd = '0'
         self.eth_upd = '0'
         
@@ -34,6 +34,8 @@ class CryptoNotifier(object):
         bs = BeautifulSoup(bitcoin_page.content, features="lxml")
         location = bs.find('div', class_='price-large')
         self.btc_price = location.get_text()
+        
+        return self.btc_price
     
         
     def find_ethernum_price(self): # Method obtains the etherneum price.
@@ -42,8 +44,12 @@ class CryptoNotifier(object):
         location = bs.find('div', class_='price-large')
         self.eth_price = location.get_text()
         
+        return self.eth_price
+        
     
     def compute_data(self): # Inserts date and prices into CSV file and calculating how much the values have changed from the last update.
+        self.find_btc_price()
+        self.find_ethernum_price()
         features = [datetime.datetime.today(), self.btc_price, self.eth_price]
         with open('data.csv', 'a') as file:
                 writer = csv.writer(file)
@@ -73,23 +79,23 @@ class CryptoNotifier(object):
         
     
     def get_notification(self): # Method which sends a notification to a user.
-        notification = Notify()
-        notification.icon = 'btc.png'
-        notification.title = "Cryptocurrency Price Notification"
-        notification.message = "BTC price: %s (%s)\nETH price: %s (%s)" % (self.btc_price, self.btc_upd, self.eth_price, self.eth_upd)
-        notification.send()
-
+        self.compute_data()
+        
+        while True:
+        # Checking if the user wants to get an update for both cryptocurrencies.
+            if 'btc' in argv:
+                crypto.find_btc_price()
+            if 'eth' in argv:
+                crypto.find_ethernum_price()
+                
+            notification = Notify()
+            notification.icon = 'btc.png'
+            notification.title = "Cryptocurrency Price Notification"
+            notification.message = "BTC price: %s (%s)\nETH price: %s (%s)" % (self.btc_price, self.btc_upd, self.eth_price, self.eth_upd)
+            notification.send()
+            time.sleep(60*10) # Scripts runs every 10 minutes.
 
 
 if __name__ == "__main__":
     crypto = CryptoNotifier()
-    while True:
-        # Checking if the user wants to get an update for both cryptocurrencies.
-        if 'btc' in argv:
-            crypto.find_btc_price()
-        if 'eth' in argv:
-            crypto.find_ethernum_price()
-        crypto.compute_data()
-        crypto.get_notification()
-        time.sleep(60*30) # Scripts runs every 30 minutes.
-    
+    crypto.get_notification()
