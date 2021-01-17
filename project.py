@@ -23,8 +23,8 @@ class CryptoNotifier(object):
         self.eth_url = eth_url
         self.btc_price = '0'
         self.eth_price = '0'
-        self.btc_upd = '0'
-        self.eth_upd = '0'
+        self.btc_update = '0'
+        self.eth_update = '0'
         
         # Initial values are strings, because Notify extension does not accept integers.
         
@@ -56,30 +56,28 @@ class CryptoNotifier(object):
                 writer.writerow(features)
         
         frame = pd.read_csv('data.csv', error_bad_lines=False) # Accessing the CSV file for calculations.
-        error_char = ["$", ","] # Characters which will be removed due to computation reasons.
+        invalid_char = ["$", ","] # Characters which will be removed due to computation reasons.
         data_values = []
-        updates = []
         
         for i in range(1,3): # Creating a list of prices.
             for j in range(1,3):
-                data_values.append(frame.iloc[-i,j]) # Getting last two prices (including the most recent one) for comparison.
+                data_value = frame.iloc[-i,j]
+                update_value = data_value.replace(invalid_char[0], '')
+                update_value = update_value.replace(invalid_char[1], '')
+                data_values.append(update_value)
                 
-                
-        for value in range(len(data_values)): # Removing aforementioned characters.
-            upd_val = data_values[value].replace(error_char[0], '')
-            upd_val = upd_val.replace(error_char[1], '')
-            updates.append(upd_val)
         
         # Calculating the updated value proportion to the previous one (in percentages).       
-        delta_btc = (float(updates[0]) - float(updates[2]))/float(updates[2]) * 100
-        delta_eth = (float(updates[1]) - float(updates[3]))/float(updates[3]) * 100
+        delta_btc = (float(data_values[0]) - float(data_values[2]))/float(data_values[2]) * 100
+        delta_eth = (float(data_values[1]) - float(data_values[3]))/float(data_values[3]) * 100
         
-        self.btc_upd = str(delta_btc) + '%'
-        self.eth_upd = str(delta_eth) + '%'
+        self.btc_update = str(delta_btc) + '%'
+        self.eth_update = str(delta_eth) + '%'
         
     
     def get_notification(self): # Method which sends a notification to a user.
         self.compute_data()
+        crypto_price = (self.btc_price, self.btc_update, self.eth_price, self.eth_update)
         
         while True:
         # Checking if the user wants to get an update for both cryptocurrencies.
@@ -91,7 +89,7 @@ class CryptoNotifier(object):
             notification = Notify()
             notification.icon = 'btc.png'
             notification.title = "Cryptocurrency Price Notification"
-            notification.message = "BTC price: %s (%s)\nETH price: %s (%s)" % (self.btc_price, self.btc_upd, self.eth_price, self.eth_upd)
+            notification.message = "BTC price: {0} ({1})\nETH price: {2} ({3})".format(*crypto_price)
             notification.send()
             time.sleep(60*10) # Scripts runs every 10 minutes.
 
